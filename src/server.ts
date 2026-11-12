@@ -1,0 +1,11 @@
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { createApp } from './app.js';
+const port=Number(process.env.PORT??18473);
+if(!Number.isInteger(port)||port<1||port>65535) throw new Error('PORT inválida');
+const path=process.env.DATABASE_PATH??'./data/tasks.sqlite';
+mkdirSync(dirname(path),{recursive:true});
+const {app,db}=createApp(path);
+const server=app.listen(port,'0.0.0.0',()=>console.log(`API na porta ${port}`));
+let closing=false;
+for(const signal of ['SIGTERM','SIGINT']) process.on(signal,()=>{if(closing)return;closing=true;server.close(()=>{db.close();process.exit(0);});setTimeout(()=>process.exit(1),10000).unref();});
